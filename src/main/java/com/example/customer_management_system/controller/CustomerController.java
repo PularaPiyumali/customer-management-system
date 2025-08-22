@@ -5,7 +5,7 @@ import com.example.customer_management_system.model.CustomerDTO;
 import com.example.customer_management_system.domain.entities.City;
 import com.example.customer_management_system.domain.entities.Country;
 import com.example.customer_management_system.application.BulkCustomerService;
-import com.example.customer_management_system.application.CustomerService;
+import com.example.customer_management_system.application.customer.CustomerService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;

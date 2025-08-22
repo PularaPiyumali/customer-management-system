@@ -1,4 +1,4 @@
-package com.example.customer_management_system.application;
+package com.example.customer_management_system.application.customer;
 
 import com.example.customer_management_system.domain.entities.Address;
 import com.example.customer_management_system.domain.entities.City;
