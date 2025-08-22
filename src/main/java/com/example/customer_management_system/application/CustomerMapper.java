@@ -9,6 +9,7 @@ import com.example.customer_management_system.domain.repository.CustomerReposito
 import com.example.customer_management_system.model.AddressDTO;
 import com.example.customer_management_system.model.CustomerDTO;
 import com.example.customer_management_system.model.FamilyMemberDTO;
+import com.example.customer_management_system.utils.MessageConstant;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -62,7 +63,7 @@ public class CustomerMapper {
                     City city =
                         cityRepository
                             .findById(addressDTO.getCityId())
-                            .orElseThrow(() -> new RuntimeException("City not found"));
+                            .orElseThrow(() -> new RuntimeException(MessageConstant.CITY_NOT_FOUND));
                     return new Address(
                         customer, addressDTO.getAddressLine1(), addressDTO.getAddressLine2(), city);
                   })

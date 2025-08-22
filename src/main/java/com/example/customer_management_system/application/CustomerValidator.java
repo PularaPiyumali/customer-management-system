@@ -5,6 +5,7 @@ import com.example.customer_management_system.domain.repository.CustomerReposito
 import com.example.customer_management_system.model.CustomerDTO;
 import com.example.customer_management_system.model.FamilyMemberDTO;
 import com.example.customer_management_system.utils.DuplicateNicException;
+import com.example.customer_management_system.utils.MessageConstant;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +27,7 @@ public class CustomerValidator {
   public void validateCustomerCreation(CustomerDTO customerDTO) {
     if (customerRepository.existsByNicNumber(customerDTO.getNicNumber())) {
       throw new DuplicateNicException(
-          "Customer with NIC " + customerDTO.getNicNumber() + " already exists");
+          MessageConstant.CUSTOMER_WITH_NIC + customerDTO.getNicNumber() + MessageConstant.ALREADY_EXISTS);
     }
 
     if (customerDTO.getFamilyMembers() != null) {
@@ -44,7 +45,7 @@ public class CustomerValidator {
     Optional<Customer> existing = customerRepository.findByNicNumber(customerDTO.getNicNumber());
     if (existing.isPresent() && !existing.get().getId().equals(parentId)) {
       throw new DuplicateNicException(
-          "Customer with NIC " + customerDTO.getNicNumber() + " already exists");
+          MessageConstant.CUSTOMER_WITH_NIC + customerDTO.getNicNumber() + MessageConstant.ALREADY_EXISTS);
     }
 
     if (customerDTO.getFamilyMembers() != null) {
@@ -60,14 +61,14 @@ public class CustomerValidator {
         familyMembers.stream().map(FamilyMemberDTO::getNicNumber).collect(Collectors.toList());
 
     if (nicNumbers.size() != nicNumbers.stream().distinct().count()) {
-      throw new DuplicateNicException("Duplicate NICs found within family members");
+      throw new DuplicateNicException(MessageConstant.DUPLICATE_NIC_MESSAGE);
     }
 
     for (FamilyMemberDTO fm : familyMembers) {
       // Family member cannot have same NIC as parent
       if (fm.getNicNumber().equals(parentNic)) {
         throw new DuplicateNicException(
-            "Family member cannot have the same NIC as the parent customer: " + fm.getNicNumber());
+            MessageConstant.DUPLICATE_NIC_EXCEPTION_MESSAGE + fm.getNicNumber());
       }
 
       Optional<Customer> existingCustomer = customerRepository.findByNicNumber(fm.getNicNumber());
@@ -78,19 +79,7 @@ public class CustomerValidator {
         if (parentId != null
             && existing.getParentCustomer() != null
             && existing.getParentCustomer().getId().equals(parentId)) {
-          continue;
         }
-
-        // Allow if standalone customer (no parent yet)
-        if (existing.getParentCustomer() == null) {
-          continue;
-        }
-
-        // Otherwise, duplicate: already child of another parent
-        throw new DuplicateNicException(
-            "Family member with NIC "
-                + fm.getNicNumber()
-                + " is already a family member of another customer");
       }
     }
   }

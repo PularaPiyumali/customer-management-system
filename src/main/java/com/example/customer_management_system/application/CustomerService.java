@@ -7,6 +7,8 @@ import com.example.customer_management_system.domain.repository.CityRepository;
 import com.example.customer_management_system.domain.repository.CountryRepository;
 import com.example.customer_management_system.domain.repository.CustomerRepository;
 import java.util.List;
+
+import com.example.customer_management_system.utils.MessageConstant;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,7 +39,7 @@ public class CustomerService {
     customerValidator.validateCustomerCreation(customerDTO);
     Customer customer = customerMapper.toEntity(customerDTO);
     Customer savedCustomer = customerRepository.save(customer);
-    log.info("Customer created with NIC {}", savedCustomer.getNicNumber());
+    log.info(MessageConstant.CUSTOMER_CREATION_SUCCESS_RESPONSE, savedCustomer.getNicNumber());
     return customerMapper.toDTO(savedCustomer);
   }
 
@@ -51,14 +53,14 @@ public class CustomerService {
     Customer customer =
         customerRepository
             .findById(id)
-            .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + id));
+            .orElseThrow(() -> new CustomerNotFoundException(MessageConstant.CUSTOMER_NOT_FOUND + id));
 
     return customerMapper.toDTO(customer);
   }
 
 
   public Page<CustomerDTO> getAllCustomers(int page, int size, String sortBy, String sortDirection) {
-    Sort sort = sortDirection.equalsIgnoreCase("desc")
+    Sort sort = sortDirection.equalsIgnoreCase(MessageConstant.DESC)
             ? Sort.by(sortBy).descending()
             : Sort.by(sortBy).ascending();
 
@@ -78,7 +80,7 @@ public class CustomerService {
     Customer existingCustomer =
         customerRepository
             .findById(id)
-            .orElseThrow(() -> new CustomerNotFoundException("Customer not found with id: " + id));
+            .orElseThrow(() -> new CustomerNotFoundException(MessageConstant.CUSTOMER_NOT_FOUND + id));
 
     customerValidator.validateCustomerUpdate(customerDTO, id);
 

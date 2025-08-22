@@ -5,7 +5,9 @@ import com.example.customer_management_system.domain.entities.BulkProcessing;
 import com.example.customer_management_system.domain.entities.Customer;
 import com.example.customer_management_system.domain.repository.BulkProcessingRepository;
 import com.example.customer_management_system.domain.repository.CustomerRepository;
+import com.example.customer_management_system.utils.MessageConstant;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BulkCustomerService {
@@ -32,18 +35,15 @@ public class BulkCustomerService {
   @Value("${bulk.processing.batch-size:1000}")
   private int batchSize;
 
-    /**
-     * Handles validation + job creation + async processing kickoff.
-     */
-
+  /** Handles validation + job creation + async processing kickoff. */
   public BulkUploadResponse handleBulkUpload(MultipartFile file) {
 
-      if (file == null || file.isEmpty()) {
-          BulkUploadResponse response = new BulkUploadResponse();
-          response.setStatus("FAILED");
-          response.setMessage("File is required and cannot be empty");
-          return response;
-      }
+    if (file == null || file.isEmpty()) {
+      BulkUploadResponse response = new BulkUploadResponse();
+      response.setStatus(MessageConstant.FAILED);
+      response.setMessage(MessageConstant.EMPTY_FILE_MESSAGE);
+      return response;
+    }
 
     String jobId = UUID.randomUUID().toString();
     try {
@@ -58,15 +58,24 @@ public class BulkCustomerService {
       processBulkUploadAsync(file, jobId);
 
       return new BulkUploadResponse(
-          jobId, "PROCESSING", "Bulk upload started successfully. Use jobId to check status.");
+          jobId, MessageConstant.PROCESSING, MessageConstant.BULK_UPLOAD_SUCCESS_MESSAGE);
 
     } catch (Exception e) {
       return new BulkUploadResponse(
-          jobId, "FAILED", "Failed to start bulk upload: " + e.getMessage());
+          jobId,
+          MessageConstant.FAILED,
+          MessageConstant.BULK_UPLOAD_FAILED_MESSAGE + e.getMessage());
     }
   }
 
-  @Async
+  /**
+   * Process bulk upload async completable future.
+   *
+   * @param file the file
+   * @param jobId the job id
+   * @return the completable future
+   */
+@Async
   @Transactional
   public CompletableFuture<Void> processBulkUploadAsync(MultipartFile file, String jobId) {
     BulkProcessing job = bulkProcessingJobRepository.findByJobId(jobId).orElse(null);
@@ -132,11 +141,17 @@ public class BulkCustomerService {
     return CompletableFuture.completedFuture(null);
   }
 
-  public BulkUploadResponse getBulkUploadStatus(String jobId) {
+  /**
+   * Gets bulk upload status.
+   *
+   * @param jobId the job id
+   * @return the bulk upload status
+   */
+public BulkUploadResponse getBulkUploadStatus(String jobId) {
     BulkProcessing job =
         bulkProcessingJobRepository
             .findByJobId(jobId)
-            .orElseThrow(() -> new RuntimeException("Job not found with id: " + jobId));
+            .orElseThrow(() -> new RuntimeException(MessageConstant.JOB_NOT_FOUND + jobId));
 
     BulkUploadResponse response = new BulkUploadResponse();
     response.setJobId(job.getJobId());
@@ -147,30 +162,30 @@ public class BulkCustomerService {
     response.setFailedRecords(job.getFailedRecords());
 
     if (job.getStatus() == BulkProcessing.JobStatus.FAILED) {
-      response.setMessage("Processing failed: " + job.getErrorMessage());
+      response.setMessage(MessageConstant.PROCESSING_FAILED + job.getErrorMessage());
     } else if (job.getStatus() == BulkProcessing.JobStatus.COMPLETED) {
-      response.setMessage("Processing completed successfully");
+      response.setMessage(MessageConstant.PROCESSING_COMPLETED_SUCCESSFULLY);
     } else {
-      response.setMessage("Processing in progress...");
+      response.setMessage(MessageConstant.PROCESSING_IN_PROGRESS);
     }
 
     return response;
   }
 
-  private void validateFile(MultipartFile file) throws IOException {
+  private void validateFile(MultipartFile file) {
     if (file.isEmpty()) {
-      throw new IllegalArgumentException("File is empty");
+      throw new IllegalArgumentException(MessageConstant.EMPTY_FILE_MESSAGE);
     }
 
     String originalFilename = file.getOriginalFilename();
     if (originalFilename == null
         || (!originalFilename.toLowerCase().endsWith(".xlsx")
             && !originalFilename.toLowerCase().endsWith(".xls"))) {
-      throw new IllegalArgumentException("File must be an Excel file (.xlsx or .xls)");
+      throw new IllegalArgumentException(MessageConstant.FILE_FORMAT_MESSAGE);
     }
 
     if (file.getSize() > 100 * 1024 * 1024) { // 100MB limit
-      throw new IllegalArgumentException("File size exceeds 100MB limit");
+      throw new IllegalArgumentException(MessageConstant.FILE_SIZE_EXCEEDED_MESSAGE);
     }
   }
 
@@ -192,7 +207,7 @@ public class BulkCustomerService {
           }
         } catch (Exception e) {
           // Log error but continue processing other rows
-          System.err.println("Error processing row " + i + ": " + e.getMessage());
+          log.info(MessageConstant.ERROR_MESSAGE, i, e.getMessage());
         }
       }
     }
@@ -226,7 +241,7 @@ public class BulkCustomerService {
       return customer;
 
     } catch (Exception e) {
-      throw new RuntimeException("Failed to parse row: " + e.getMessage(), e);
+      throw new RuntimeException(MessageConstant.FAILED_TO_PARSE_ROW + e.getMessage(), e);
     }
   }
 
@@ -264,10 +279,10 @@ public class BulkCustomerService {
         }
       }
 
-      throw new RuntimeException("Unable to parse date: " + dateString);
+      throw new RuntimeException(MessageConstant.UNABLE_TO_PARSE_ROW + dateString);
 
     } catch (Exception e) {
-      throw new RuntimeException("Invalid date format: " + dateString, e);
+      throw new RuntimeException(MessageConstant.INVALID_DATE_FORMAT + dateString, e);
     }
   }
 }
